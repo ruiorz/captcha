@@ -1,0 +1,11 @@
+.buildpath
+.settings/
+.project
+*.patch
+.idea/
+.git/
+vendor/
+.coverage
+*.cache
+composer.lock
+.DS_Store

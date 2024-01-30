@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit backupGlobals="false" bootstrap="./vendor/autoload.php"
+         colors="true" processIsolation="false" stopOnFailure="false"
+         backupStaticProperties="false">
+    <php>
+        <!-- other PHP.ini or environment variables -->
+        <ini name="memory_limit" value="-1"/>
+    </php>
+    <testsuites>
+        <testsuite name="Tests">
+            <directory suffix="Test.php">./test</directory>
+        </testsuite>
+    </testsuites>
+    <coverage includeUncoveredFiles="true" pathCoverage="false" ignoreDeprecatedCodeUnits="true"
+              disableCodeCoverageIgnore="false">
+        <report>
+            <html outputDirectory=".coverage/" lowUpperBound="50" highLowerBound="90"/>
+        </report>
+    </coverage>
+    <source>
+        <include>
+            <directory suffix=".php">./src</directory>
+        </include>
+        <exclude>
+            <directory suffix=".php">./src/Exception</directory>
+            <directory suffix=".php">./src/Interface</directory>
+        </exclude>
+    </source>
+</phpunit>

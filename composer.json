@@ -1,0 +1,36 @@
+{
+    "name": "ruiorz/captcha",
+    "description": "Captcha library for PHP",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Ruiorz\\Captcha\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "ruiorz",
+            "email": "ruiorz@qq.com"
+        }
+    ],
+    "minimum-stability": "stable",
+    "require": {
+        "php": ">=8.1",
+        "ext-gd": "*",
+        "ext-mbstring": "*"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^10.0",
+        "phpstan/phpstan": "^1.0",
+        "friendsofphp/php-cs-fixer": "^3.0"
+    },
+    "suggest": {
+        "ext-xdebug": "PHP extension that provides line coverage as well as branch and path coverage."
+    },
+    "scripts": {
+        "test-coverage": "XDEBUG_MODE=coverage phpunit -c phpunit.xml --colors=always",
+        "analyse": "phpstan analyse --memory-limit 200M -l 0 ./src",
+        "cs-fix": "php-cs-fixer fix $1"
+    }
+}

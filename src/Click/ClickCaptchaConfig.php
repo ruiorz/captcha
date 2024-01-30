@@ -1,0 +1,106 @@
+<?php
+
+declare(strict_types=1);
+/**
+ * @author ruiorz(ruiorz@qq.com)
+ * @link https://github.com/ruiorz
+ */
+
+namespace Ruiorz\Captcha\Click;
+
+use Ruiorz\Captcha\Exception\ResourceNotFoundException;
+use Ruiorz\Captcha\Interface\CaptchaConfig;
+
+class ClickCaptchaConfig implements CaptchaConfig
+{
+    // 字体路径
+    private ?string $fontPath = null;
+
+    // 底图路径
+    private ?string $imagePath = null;
+
+    // 文本数量
+    private int $textLength = 8;
+
+    // 验证文字数量
+    private int $verifyLength = 4;
+
+    /**
+     * @return int
+     */
+    public function getTextLength(): int
+    {
+        return $this->textLength;
+    }
+
+    /**
+     * @param int $textLength
+     */
+    public function setTextLength(int $textLength): void
+    {
+        if ($textLength < 4) {
+            $textLength = 4;
+        }
+        if ($textLength > 8) {
+            $textLength = 8;
+        }
+        $this->textLength = $textLength;
+    }
+
+    /**
+     * @return int
+     */
+    public function getVerifyLength(): int
+    {
+        return $this->verifyLength;
+    }
+
+    /**
+     * @param int $verifyLength
+     */
+    public function setVerifyLength(int $verifyLength): void
+    {
+        if ($verifyLength > $this->textLength) {
+            $verifyLength = $this->textLength;
+        }
+        $this->verifyLength = $verifyLength;
+    }
+
+    /**
+     * @param string $fontPath
+     */
+    public function setFontPath(string $fontPath): void
+    {
+        if (!file_exists($fontPath)) {
+            throw new ResourceNotFoundException("Font file not found: {$fontPath}");
+        }
+        $this->fontPath = $fontPath;
+    }
+
+    /**
+     * @param string $imagePath
+     */
+    public function setImagePath(string $imagePath): void
+    {
+        if (!file_exists($imagePath)) {
+            throw new ResourceNotFoundException("Image file not found: {$imagePath}");
+        }
+        $this->imagePath = $imagePath;
+    }
+
+    /**
+     * @return ?string
+     */
+    public function getFontPath(): ?string
+    {
+        return $this->fontPath;
+    }
+
+    /**
+     * @return ?string
+     */
+    public function getImagePath(): ?string
+    {
+        return $this->imagePath;
+    }
+}
