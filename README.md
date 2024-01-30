@@ -13,11 +13,11 @@ composer require ruiorz/captcha
 ## Usage
 ```php
 # click captcha:
-$captcha = new ClickCaptcha();
+$captcha = new \Ruiorz\Captcha\Click\ClickCaptcha();
 $result = $captcha->draw();
 
 # or math captcha:
-$captcha = new MathCaptcha();
+$captcha = new \Ruiorz\Captcha\Math\MathCaptcha();
 $result = $captcha->draw();
 
 # result:
@@ -29,17 +29,17 @@ print_r($result->getImageBase64())
 ## Configuration
 ```php
 # click captcha:
-$config = new ClickCaptchaConfig();
+$config = new \Ruiorz\Captcha\Click\ClickCaptchaConfig();
 $config->setFontPath('src/Click/fonts/msyh.ttc');
 $config->setImagePath('src/Click/images/3.jpg');
 $config->setVerifyLength(3);
-$result = (new ClickCaptcha($config))->draw();
+$result = (new \Ruiorz\Captcha\Click\ClickCaptcha($config))->draw();
 print_r($result->getCaptchaData());
 
 # or math captcha:
-$config = new MathCaptchaConfig();
+$config = new \Ruiorz\Captcha\Math\MathCaptchaConfig();
 $config->setFontPath('src/Math/fonts/Bitsumishi.ttf');
-$result = (new MathCaptcha($config))->draw();
+$result = (new \Ruiorz\Captcha\Math\MathCaptcha($config))->draw();
 print_r($result->getCaptchaData());
 ```
 
