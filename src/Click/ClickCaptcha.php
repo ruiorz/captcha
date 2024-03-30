@@ -83,6 +83,13 @@ class ClickCaptcha implements Captcha
             imagettftext($image, $v['size'], $randAngle, $v['x'], $v['y'] + 1, $shadowColor, $fontPath, $v['text']);
             // 绘画文字
             imagettftext($image, $v['size'], $randAngle, $v['x'], $v['y'], $color, $fontPath, $v['text']);
+            // 计算旋转后的“精确”边界框
+            $borderBox = $this->calculateTextBox($v['size'], $randAngle, $fontPath, $v['text']);
+            // 计算字体左下角的x,y,宽高
+            $v['x'] = $v['x'] - $borderBox['left'];
+            $v['y'] = $v['y'] - $borderBox['top'] + $borderBox['height'];
+            $v['width'] = $borderBox['width'];
+            $v['height'] = $borderBox['height'];
         }
         // 删除汉字数组后面4个，实现图片上展示8个字，实际只需点击4个的效果
         $verifyLength = $this->config->getVerifyLength();
@@ -118,7 +125,7 @@ class ClickCaptcha implements Captcha
             if ($verifyData[$i]['x'] < $captchaData['texts'][$i]['x'] || $verifyData[$i]['x'] > $captchaData['texts'][$i]['x'] + $captchaData['texts'][$i]['width']) {
                 return false;
             }
-            if ($verifyData[$i]['y'] < $captchaData['texts'][$i]['y'] || $verifyData[$i]['y'] > $captchaData['texts'][$i]['y'] + $captchaData['texts'][$i]['height']) {
+            if ($verifyData[$i]['y'] < $captchaData['texts'][$i]['y'] - $captchaData['texts'][$i]['height'] || $verifyData[$i]['y'] > $captchaData['texts'][$i]['y']) {
                 return false;
             }
         }
@@ -214,5 +221,55 @@ class ClickCaptcha implements Captcha
         $g = ($rgb >> 8) & 0xFF;
         $b = $rgb & 0xFF;
         return [$r, $g, $b];
+    }
+
+    // 计算旋转后的“精确”边界框
+    private function calculateTextBox($font_size, $font_angle, $font_file, $text) {
+        $box = imagettfbbox($font_size, $font_angle, $font_file, $text);
+        if(!$box) {
+            return false;
+        }
+
+        $min_x = min( array($box[0], $box[2], $box[4], $box[6]) );
+        $max_x = max( array($box[0], $box[2], $box[4], $box[6]) );
+        $min_y = min( array($box[1], $box[3], $box[5], $box[7]) );
+        $max_y = max( array($box[1], $box[3], $box[5], $box[7]) );
+        $width  = ($max_x - $min_x);
+        $height = ($max_y - $min_y);
+        $left   = abs($min_x) + $width;
+        $top    = abs($min_y) + $height;
+        // to calculate the exact bounding box i write the text in a large image
+        $img     = @imagecreatetruecolor( $width << 2, $height << 2 );
+        $white   =  imagecolorallocate( $img, 255, 255, 255 );
+        $black   =  imagecolorallocate( $img, 0, 0, 0 );
+        imagefilledrectangle($img, 0, 0, imagesx($img), imagesy($img), $black);
+        // for sure the text is completely in the image!
+        imagettftext( $img, $font_size,
+            $font_angle, $left, $top,
+            $white, $font_file, $text);
+        // start scanning (0=> black => empty)
+        $rleft  = $w4 = $width<<2;
+        $rright = 0;
+        $rbottom   = 0;
+        $rtop = $h4 = $height<<2;
+        for( $x = 0; $x < $w4; $x++ ) {
+            for( $y = 0; $y < $h4; $y++ ) {
+                if(imagecolorat( $img, $x, $y )){
+                    $rleft   = min( $rleft, $x );
+                    $rright  = max( $rright, $x );
+                    $rtop    = min( $rtop, $y );
+                    $rbottom = max( $rbottom, $y );
+                }
+            }
+        }
+
+        // destroy img and serve the result
+        imagedestroy( $img );
+        return [
+            "left"   => $left - $rleft,
+            "top"    => $top  - $rtop,
+            "width"  => $rright - $rleft + 1,
+            "height" => $rbottom - $rtop + 1
+        ];
     }
 }
