@@ -46,29 +46,27 @@ class ClickCaptcha implements Captcha
         $textLength = $this->config->getTextLength();
         foreach ($this->randChars($textLength) as $v) {
             $fontSize = rand(15, 30);
-            // 字符串文本框宽度和长度
-            $fontArea = imagettfbbox($fontSize, 0, $fontPath, $v);
-            $textWidth = $fontArea[2] - $fontArea[0];
-            $textHeight = $fontArea[1] - $fontArea[7];
+            $randAngle = mt_rand(-45, 45);
+            // 计算旋转后的“精确”边界框
+            $borderBox = $this->calculateTextBox($fontSize, $randAngle, $fontPath, $v);
             $tmp['text'] = $v;
             $tmp['size'] = $fontSize;
-            $tmp['width'] = $textWidth;
-            $tmp['height'] = $textHeight;
+            $tmp['rand_angle'] = $randAngle;
+            $tmp = array_merge($tmp, $borderBox);
             $texts[] = $tmp;
         }
         // 获取图片宽高和类型
         [$imageWidth, $imageHeight, $imageType] = getimagesize($imagePath);
         // 随机生成汉字位置
         foreach ($texts as &$v) {
-            [$x, $y] = $this->randPosition($texts, $imageWidth, $imageHeight, $v['width'], $v['height']);
-            $v['x'] = $x;
-            $v['y'] = $y;
+            [$ori_x, $ori_y, $x, $y] = $this->randPosition($texts, $imageWidth, $imageHeight, $v);
+            $v = array_merge($v, compact('ori_x', 'ori_y', 'x', 'y'));
         }
         unset($v);
         // 创建图片的实例
         $image = imagecreatefromstring(file_get_contents($imagePath));
-        foreach ($texts as $v) {
-            [$r, $g, $b] = $this->getImageColor($imagePath, intval($v['x'] + $v['width'] / 2), intval($v['y'] - $v['height'] / 2));
+        foreach ($texts as &$v) {
+            [$r, $g, $b] = $this->getImageColor($imagePath, intval($v['ori_x'] + $v['width'] / 2), intval($v['ori_y'] - $v['height'] / 2));
             // 字体颜色
             $color = imagecolorallocate($image, $r, $g, $b);
             // 阴影字体颜色
@@ -77,19 +75,13 @@ class ClickCaptcha implements Captcha
             $b = $b > 127 ? 0 : 255;
             $shadowColor = imagecolorallocate($image, $r, $g, $b);
             // 文字随机旋转角度
-            $randAngle = mt_rand(-45, 45);
+            $randAngle = $v['rand_angle'];
             // 绘画阴影
-            imagettftext($image, $v['size'], $randAngle, $v['x'] + 1, $v['y'], $shadowColor, $fontPath, $v['text']);
-            imagettftext($image, $v['size'], $randAngle, $v['x'], $v['y'] + 1, $shadowColor, $fontPath, $v['text']);
+            imagettftext($image, $v['size'], $randAngle, $v['ori_x'] + 1, $v['ori_y'], $shadowColor, $fontPath, $v['text']);
+            imagettftext($image, $v['size'], $randAngle, $v['ori_x'], $v['ori_y'] + 1, $shadowColor, $fontPath, $v['text']);
             // 绘画文字
-            imagettftext($image, $v['size'], $randAngle, $v['x'], $v['y'], $color, $fontPath, $v['text']);
-            // 计算旋转后的“精确”边界框
-            $borderBox = $this->calculateTextBox($v['size'], $randAngle, $fontPath, $v['text']);
-            // 计算字体左下角的x,y,宽高
-            $v['x'] = $v['x'] - $borderBox['left'];
-            $v['y'] = $v['y'] - $borderBox['top'] + $borderBox['height'];
-            $v['width'] = $borderBox['width'];
-            $v['height'] = $borderBox['height'];
+            imagettftext($image, $v['size'], $randAngle, $v['ori_x'], $v['ori_y'], $color, $fontPath, $v['text']);
+            unset($v['ori_x'], $v['ori_y'], $v['rand_angle'], $v['top'], $v['left']);
         }
         // 删除汉字数组后面4个，实现图片上展示8个字，实际只需点击4个的效果
         $verifyLength = $this->config->getVerifyLength();
@@ -159,15 +151,19 @@ class ClickCaptcha implements Captcha
     }
 
     // 随机生成位置布局
-    private function randPosition($texts, $imgW, $imgH, $fontW, $fontH)
+    private function randPosition($texts, $imgW, $imgH, $fontInfo)
     {
-        $x = rand(0, $imgW - $fontW);
-        $y = rand($fontH, $imgH);
+        $ori_x = rand($fontInfo['left'], $imgW - $fontInfo['width']);
+        $ori_y = rand($fontInfo['top'], $imgH - ($fontInfo['height'] - $fontInfo['top']));
+        // 计算字体左下角的x,y,宽高
+        $x = $ori_x - $fontInfo['left'];
+        $y = $ori_y - $fontInfo['top'] + $fontInfo['height'];
+
         // 碰撞验证
-        if (!$this->checkPosition($texts, $x, $y, $fontW, $fontH)) {
-            $res = $this->randPosition($texts, $imgW, $imgH, $fontW, $fontH);
+        if (!$this->checkPosition($texts, $x, $y, $fontInfo['width'], $fontInfo['height'])) {
+            $res = $this->randPosition($texts, $imgW, $imgH, $fontInfo);
         } else {
-            $res = [$x, $y];
+            $res = [$ori_x, $ori_y, $x, $y];
         }
         return $res;
     }
