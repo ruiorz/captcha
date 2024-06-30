@@ -25,6 +25,12 @@ class ClickCaptchaConfig implements CaptchaConfig
     // 验证文字数量
     private int $verifyLength = 4;
 
+    // 点击验证码一个文字宽度 px
+    private int $clickTextWidth = 40;
+
+    // 点击验证码背景高度 px
+    private int $clickTextHeight = 40;
+
     /**
      * @return int
      */
@@ -102,5 +108,45 @@ class ClickCaptchaConfig implements CaptchaConfig
     public function getImagePath(): ?string
     {
         return $this->imagePath;
+    }
+
+
+    /**
+     * 获取需要点击文字的宽度
+     * @return int
+     */
+    public function getClickTextWidth(): int
+    {
+        return $this->clickTextWidth;
+    }
+
+    /**
+     * 设置点击文字的宽度
+     * @param int $clickTextWidth
+     * @return void
+     */
+    public function setClickTextWidth(int $clickTextWidth): void
+    {
+        $this->clickTextWidth = $clickTextWidth;
+    }
+
+
+    /**
+     * 获取需要点击文字背景的高度
+     * @return int
+     */
+    public function getClickTextHeight(): int
+    {
+        return $this->clickTextHeight;
+    }
+
+    /**
+     * 设置点击文字背景的高度
+     * @param int $clickTextHeight
+     * @return void
+     */
+    public function setClickTextHeight(int $clickTextHeight): void
+    {
+        $this->clickTextHeight = $clickTextHeight;
     }
 }
