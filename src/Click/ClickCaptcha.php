@@ -32,7 +32,19 @@ class ClickCaptcha implements Captcha
             $packagePath . '/images/2.jpg',
             $packagePath . '/images/3.jpg',
         ];
-        # 随机一张底图
+        // 验证文字数
+        $textLength = $this->config->getTextLength();
+        // 实际需要点击的文字数
+        $verifyLength = $this->config->getVerifyLength();
+
+        # 点击验证码底图
+        $clickTextWidth = $this->config->getClickTextWidth();
+        $clickBackendHeight = $this->config->getClickTextHeight();
+        $clickBackendIm = imagecreatetruecolor($verifyLength * $clickTextWidth + 20, $clickBackendHeight);
+        $bgColor = imagecolorallocate($clickBackendIm, 255, 255, 255);
+        imagefill($clickBackendIm, 0, 0, $bgColor);
+
+        # 随机一张验证码底图
         $imagePath = $imagePathArr[rand(0, count($imagePathArr) - 1)];
         if ($this->config->getImagePath()) {
             $imagePath = $this->config->getImagePath();
@@ -43,7 +55,6 @@ class ClickCaptcha implements Captcha
             $fontPath = $this->config->getFontPath();
         }
         $texts = [];
-        $textLength = $this->config->getTextLength();
         foreach ($this->randChars($textLength) as $v) {
             $fontSize = rand(15, 30);
             $randAngle = mt_rand(-45, 45);
@@ -65,7 +76,14 @@ class ClickCaptcha implements Captcha
         unset($v);
         // 创建图片的实例
         $image = imagecreatefromstring(file_get_contents($imagePath));
-        foreach ($texts as &$v) {
+
+        $clickBackendX = 10;
+        $offset = 3;
+        $setVerifyLength = 0;
+        $whiteColor = imagecolorallocate($clickBackendIm, 255, 255, 255);
+        $blackColor = imagecolorallocate($clickBackendIm, 0, 0, 0);
+
+        foreach ($texts as $k => &$v) {
             [$r, $g, $b] = $this->getImageColor($imagePath, intval($v['ori_x'] + $v['width'] / 2), intval($v['ori_y'] - $v['height'] / 2));
             // 字体颜色
             $color = imagecolorallocate($image, $r, $g, $b);
@@ -81,11 +99,21 @@ class ClickCaptcha implements Captcha
             imagettftext($image, $v['size'], $randAngle, $v['ori_x'], $v['ori_y'] + 1, $shadowColor, $fontPath, $v['text']);
             // 绘画文字
             imagettftext($image, $v['size'], $randAngle, $v['ori_x'], $v['ori_y'], $color, $fontPath, $v['text']);
+            if ($k >= $offset && $setVerifyLength < $verifyLength) {
+                $clickRandAngle = mt_rand(-15, 15);
+                $clickTxtSize = rand(18, 23);
+                // 绘画阴影
+                imagettftext($clickBackendIm, $clickTxtSize, $clickRandAngle, $clickBackendX + 1, 30, $blackColor, $fontPath, $v['text']);
+                imagettftext($clickBackendIm, $clickTxtSize, $clickRandAngle, $clickBackendX, 31, $blackColor, $fontPath, $v['text']);
+                // 绘画文字
+                imagettftext($clickBackendIm, $clickTxtSize, $clickRandAngle, $clickBackendX, 30, $whiteColor, $fontPath, $v['text']);
+                $clickBackendX += $clickTextWidth;
+                $setVerifyLength ++;
+            }
             unset($v['ori_x'], $v['ori_y'], $v['rand_angle'], $v['top'], $v['left']);
         }
         // 删除汉字数组后面4个，实现图片上展示8个字，实际只需点击4个的效果
-        $verifyLength = $this->config->getVerifyLength();
-        $texts = array_splice($texts, 3, $verifyLength);
+        $texts = array_splice($texts, $offset, $verifyLength);
         // 生成图片
         ob_start();
         $func = 'image' . ImageMine::getImageExtension($imageType);
@@ -93,6 +121,12 @@ class ClickCaptcha implements Captcha
         $imageByte = ob_get_contents();
         ob_end_clean();
         imagedestroy($image);
+        // 生成需连续点击的文字图片
+        ob_start();
+        imagepng($clickBackendIm);
+        $clickImageByte = ob_get_contents();
+        ob_end_clean();
+
         // 组装结果数据
         $captchaData = [
             'texts' => $texts,
@@ -101,17 +135,11 @@ class ClickCaptcha implements Captcha
             'width' => $imageWidth,
             'height' => $imageHeight,
         ];
-        return new ClickCaptchaResult($captchaData, $imageByte);
+        return new ClickCaptchaResult($captchaData, $imageByte, $clickImageByte);
     }
 
     public function verify(array $verifyData, array $captchaData): bool
     {
-        // 判断顺序
-        for ($i = 0; $i < count($verifyData); ++$i) {
-            if ($verifyData[$i]['text'] !== $captchaData['texts'][$i]['text']) {
-                return false;
-            }
-        }
         // 判断坐标是否在范围内
         for ($i = 0; $i < count($verifyData); ++$i) {
             if ($verifyData[$i]['x'] < $captchaData['texts'][$i]['x'] || $verifyData[$i]['x'] > $captchaData['texts'][$i]['x'] + $captchaData['texts'][$i]['width']) {
